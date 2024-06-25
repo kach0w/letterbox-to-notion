@@ -5,7 +5,6 @@ from urllib.parse import quote
 import sys
 import io
 from notion_client import Client
-import os
 
 notion_token = "" # get your own notion token
 database_id = "" # get your own notion database id (after putting in the correct fields)
@@ -89,7 +88,21 @@ def add_to_notion(movie):
                 }
             ]
         }
-    notion.pages.create(parent={"database_id": database_id}, properties=properties)
+    res = notion.databases.query(
+        database_id = database_id,
+        filter={
+            "property": "Title",
+            "rich_text": {
+                "equals": movie["title"]
+            }
+        }
+    )
+    if len(res['results']) > 0:
+        print("Found it!")
+    else:
+        print("Adding it!")
+        print(movie["title"])
+        notion.pages.create(parent={"database_id": database_id}, properties=properties)
 
 page_num = 1
 while True:
