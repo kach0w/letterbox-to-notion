@@ -5,10 +5,9 @@ from urllib.parse import quote
 import sys
 import io
 from notion_client import Client
-import os
 
-notion_token = "" # get your own notion token
-database_id = "" # get your own notion database id (after putting in the correct fields)
+notion_token = "secret_PcWLRSTjAVz2bcItXQswO46Cg4Qo5VmfRvnkb10WEXM" # get your own notion token
+database_id = "1f30d68bcbcb4c9299e4ed4d2999328a" # get your own notion database id (after putting in the correct fields)
 notion = Client(auth=notion_token)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -28,7 +27,7 @@ def get_data(soup):
         rating = e.find('span', class_='rating').get_text()  
         movie_url = 'https://letterboxd.com/films/' + e.find("div").get("data-film-slug")
         #tmdb api
-        api_key = "" # get your own api key for tmdb
+        api_key = "3d531900dfd51fafba64c48a9bb1babc" # get your own api key for tmdb
         link = f"https://api.themoviedb.org/3/search/movie?query={quote(title)}&api_key={api_key}"
         res = requests.get(link)
         backdrop = year = ""
@@ -89,7 +88,21 @@ def add_to_notion(movie):
                 }
             ]
         }
-    notion.pages.create(parent={"database_id": database_id}, properties=properties)
+    res = notion.databases.query(
+        database_id = database_id,
+        filter={
+            "property": "Title",
+            "rich_text": {
+                "equals": movie["title"]
+            }
+        }
+    )
+    if len(res['results']) > 0:
+        print("Found it!")
+    else:
+        print("Adding it!")
+        print(movie["title"])
+        notion.pages.create(parent={"database_id": database_id}, properties=properties)
 
 page_num = 1
 while True:
