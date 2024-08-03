@@ -12,7 +12,7 @@ notion = Client(auth=notion_token)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 movies = []
-url = "https://letterboxd.com/karsab/films/by/date/" # change to your username
+url = "https://letterboxd.com/karsab/films/diary" # change to your username
 
 def scrape(url):
     response = requests.get(url)
@@ -22,19 +22,35 @@ def scrape(url):
 
 def get_data(soup):
     movies = []
-    for e in soup.select('li.poster-container'):
-        title = e.img.get('alt')
-        rating = e.find('span', class_='rating').get_text()  
-        movie_url = 'https://letterboxd.com/films/' + e.find("div").get("data-film-slug")
+    for e in soup.select('tr.diary-entry-row'):
+        mapping = {
+            'Jan': 'January',
+            'Feb': 'February',
+            'Mar': 'March',
+            'Apr': 'April',
+            'May': 'May',
+            'Jun': 'June',
+            'Jul': 'July',
+            'Aug': 'August',
+            'Sep': 'September',
+            'Oct': 'October',
+            'Nov': 'November',
+            'Dec': 'December'
+        }
+        rating = e.find('div', class_='hide-for-owner').get_text().strip()
+        title = e.find('td', class_='td-actions').get("data-film-name")  
+        if(e.find('div', class_='date')):
+            year = mapping[e.find('div', class_='date').a.get_text()] + " " + e.find('td', class_='td-calendar').find('small').get_text(strip=True)
+
+        movie_url = 'https://letterboxd.com/film/' + e.find('td', class_='td-actions').get("data-film-slug")  
         #tmdb api
         api_key = "" # get your own api key for tmdb
         link = f"https://api.themoviedb.org/3/search/movie?query={quote(title)}&api_key={api_key}"
         res = requests.get(link)
-        backdrop = year = ""
+        backdrop = ""
         if res.status_code == 200:
             res = res.json()
             backdrop = "https://image.tmdb.org/t/p/w500" + res["results"][0]["backdrop_path"]
-            year = res["results"][0]["release_date"][:4]
         movies.append({
             'title': title,
             'rating': rating,
@@ -104,9 +120,10 @@ def add_to_notion(movie):
         print(movie["title"])
         notion.pages.create(parent={"database_id": database_id}, properties=properties)
 
+
 page_num = 1
 while True:
-    new_url = f"{url}page/{page_num}"
+    new_url = f"{url}/page/{page_num}"
     soup = scrape(new_url)
     data = get_data(soup)
     if not data:
